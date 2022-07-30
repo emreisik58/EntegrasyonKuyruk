@@ -15,14 +15,26 @@ using System.Threading.Tasks;
 
 namespace EntegrasyonKuyruk
 {
-    internal class Program
+    public class Program
     {
+        public class TokenISS
+        {
+            public string Token { get;  set; }
+
+            public int? wSSettings { get; set; }
+
+        }
         private const int SW_HIDE = 0;
 
         private const int SW_SHOW = 5;
+        [DllImport("user32.dll", CharSet = CharSet.None, ExactSpelling = false)]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        [DllImport("kernel32.dll", CharSet = CharSet.None, ExactSpelling = false)]
+        private static extern IntPtr GetConsoleWindow();
+
 
         private readonly static ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        public static List<Program.TokenISS> tokenISS = new List<Program.TokenISS>();
+        public static List<TokenISS> tokenISS = new List<TokenISS>();
 
         public static SpidyaQuery spidyaQuery = new SpidyaQuery();
 
@@ -33,58 +45,14 @@ namespace EntegrasyonKuyruk
         public static List<string> BodyList = new List<string>();
 
 
-        [DllImport("kernel32.dll", CharSet = CharSet.None, ExactSpelling = false)]
-        private static extern IntPtr GetConsoleWindow();
+
 
         public static List<dynamic> GetQueueList()
         {
-            List<object> objs = JsonConvert.DeserializeObject<List<object>>(Program.spidyaQuery.SpidyaGetObjectList(Program.log, "WSSettingsTicketQueue", "PK_WSSETTINGSTICKETQUEUEID != 0 and ISDELETED == false", Program.tools));
-            List<int> queueTicketList = Program.GetQueueTicketList(objs);
-            List<object> objs1 = new List<object>();
-            foreach (int ınt32 in queueTicketList)
-            {
-                objs1.AddRange(objs.Where<object>((object x) => {
-                    if (Program.<> o__11.<> p__3 == null)
-                    {
-                        Program.<> o__11.<> p__3 = CallSite<Func<CallSite, object, bool>>.Create(Binder.Convert(CSharpBinderFlags.None, typeof(bool), typeof(Program)));
-                    }
-                    !0 target = Program.<> o__11.<> p__3.Target;
-                    CallSite<Func<CallSite, object, bool>> u003cu003ep_3 = Program.<> o__11.<> p__3;
-                    if (Program.<> o__11.<> p__2 == null)
-                    {
-                        Program.<> o__11.<> p__2 = CallSite<Func<CallSite, object, int, object>>.Create(Binder.BinaryOperation(CSharpBinderFlags.None, ExpressionType.Equal, typeof(Program), (IEnumerable<CSharpArgumentInfo>)(new CSharpArgumentInfo[] { CSharpArgumentInfo.Create(CSharpArgumentInfoFlags.None, null), CSharpArgumentInfo.Create(CSharpArgumentInfoFlags.UseCompileTimeType, null) })));
-                    }
-                    !0 _u00210 = Program.<> o__11.<> p__2.Target;
-                    CallSite<Func<CallSite, object, int, object>> u003cu003ep_2 = Program.<> o__11.<> p__2;
-                    if (Program.<> o__11.<> p__1 == null)
-                    {
-                        Program.<> o__11.<> p__1 = CallSite<Func<CallSite, object, object>>.Create(Binder.GetMember(CSharpBinderFlags.None, "TicketID", typeof(Program), (IEnumerable<CSharpArgumentInfo>)(new CSharpArgumentInfo[] { CSharpArgumentInfo.Create(CSharpArgumentInfoFlags.None, null) })));
-                    }
-                    !0 target1 = Program.<> o__11.<> p__1.Target;
-                    CallSite<Func<CallSite, object, object>> u003cu003ep_1 = Program.<> o__11.<> p__1;
-                    if (Program.<> o__11.<> p__0 == null)
-                    {
-                        Program.<> o__11.<> p__0 = CallSite<Func<CallSite, object, object>>.Create(Binder.GetMember(CSharpBinderFlags.None, "Ticket", typeof(Program), (IEnumerable<CSharpArgumentInfo>)(new CSharpArgumentInfo[] { CSharpArgumentInfo.Create(CSharpArgumentInfoFlags.None, null) })));
-                    }
-                    return target(u003cu003ep_3, _u00210(u003cu003ep_2, target1(u003cu003ep_1, Program.<> o__11.<> p__0.Target(Program.<> o__11.<> p__0, x)), ınt32));
-                }).ToList<object>());
-            }
-            return objs1;
+            List<dynamic> queueTicketList = JsonConvert.DeserializeObject<List<object>>(Program.spidyaQuery.SpidyaGetObjectList(Program.log, "WSSettingsTicketQueue", "PK_WSSETTINGSTICKETQUEUEID != 0 and ISDELETED == false", Program.tools));
+            return queueTicketList;
         }
 
-        public static List<int> GetQueueTicketList(List<dynamic> wSSettingsTicketQueueList)
-        {
-            List<int> ınt32s = new List<int>();
-            foreach (dynamic obj in wSSettingsTicketQueueList)
-            {
-                if (ınt32s.Contains((int)obj.Ticket.TicketID))
-                {
-                    continue;
-                }
-                ınt32s.Add((int)obj.Ticket.TicketID);
-            }
-            return ınt32s;
-        }
 
         public static string GetToken(int? wSSettingsLogin, int ticketId)
         {
@@ -124,7 +92,7 @@ namespace EntegrasyonKuyruk
             }
             catch (Exception exception)
             {
-                throw;
+                throw exception;
             }
             Program.log.Info(string.Concat("GetTokenWs TicketID :", ticketId.ToString(), " token:", str));
             return str;
@@ -197,40 +165,38 @@ namespace EntegrasyonKuyruk
         private static void Main(string[] args)
         {
             List<object> objs = new List<object>();
-            List<object> queueList = Program.GetQueueList();
-            foreach (dynamic obj in queueList)
+            List<dynamic> queueList = Program.GetQueueList();
+
+
+            var queueListGroupedByTicketID = queueList.GroupBy(u => (int)u.Ticket.TicketID).ToList();
+
+
+            Parallel.ForEach(queueListGroupedByTicketID, group =>
             {
-                if (Program.blockList.Contains((int)obj.Ticket.TicketID))
-                {
-                    objs.Add(obj);
-                }
-                else
-                {
-                    Program.QueueListProcess(obj);
-                }
-            }
-            Parallel.ForEach<object>(objs, (object TicketQueue) => {
-                if (Program.<> o__17.<> p__5 == null)
-                {
-                    Program.<> o__17.<> p__5 = CallSite<Action<CallSite, Type, object>>.Create(Binder.InvokeMember(CSharpBinderFlags.ResultDiscarded, "QueueListProcess", null, typeof(Program), (IEnumerable<CSharpArgumentInfo>)(new CSharpArgumentInfo[] { CSharpArgumentInfo.Create(CSharpArgumentInfoFlags.UseCompileTimeType | CSharpArgumentInfoFlags.IsStaticType, null), CSharpArgumentInfo.Create(CSharpArgumentInfoFlags.None, null) })));
-                }
-                Program.<> o__17.<> p__5.Target(Program.<> o__17.<> p__5, typeof(Program), TicketQueue);
+                    if (!Program.blockList.Contains(group.Key))
+                    {
+
+                        foreach (var queue in group)
+                        {
+                            Program.QueueListProcess(queue);
+                        }
+                    }
             });
             if (queueList.Count == 0)
             {
-                Program.log.Info("Main wSSettingsTicketQueue Tablosunda işlenecek kayıt bulunamadı....");
+                log.Info("Main wSSettingsTicketQueue Tablosunda işlenecek kayıt bulunamadı....");
                 return;
             }
-            Program.log.Info("Main *****  wSSettingsTicketQueue Tablosunda işlendi *****");
+            log.Info("Main *****  wSSettingsTicketQueue Tablosunda işlendi *****");
         }
 
         public static bool QueueListProcess(dynamic TicketQueue)
         {
             bool flag = false;
-            bool flag1 = false;
-            typeof(bool).TryParse(TicketQueue.IsError.ToString(), &flag1);
-            Program.log.Info("TicketID :" + TicketQueue.Ticket.TicketID + " isErrorr :" + flag1.ToString());
-            if (flag1)
+            bool isError = false;
+            bool.TryParse(TicketQueue.IsError.ToString(), out isError);
+            Program.log.Info("TicketID :" + TicketQueue.Ticket.TicketID + " isErrorr :" + isError.ToString());
+            if (isError)
             {
                 Program.blockList.Add((int)TicketQueue.Ticket.TicketID);
                 flag = true;
@@ -241,6 +207,7 @@ namespace EntegrasyonKuyruk
                 }
                 catch (Exception exception)
                 {
+
                 }
                 JObject jObject = (JObject)Program.tools.wSSettingsTicketQueueUpdeteObject(Program.log, (int)TicketQueue.WSSettingsTicketQueueID, TicketQueue.strResponse, TicketQueue.strStatus, ticketQueue, false, ticketQueue % 5 == 0);
                 Program.spidyaQuery.spidyaUpdateObject(Program.log, "", jObject, "", Program.tools);
@@ -308,7 +275,7 @@ namespace EntegrasyonKuyruk
                     if (str == "PLANLAMA")
                     {
                         JObject jObject3 = JObject.Parse((string)TicketQueue.BodyText);
-                        string ıtem = (string)jObject3.get_Item("PlannedDateTime");
+                        string ıtem = (string)jObject3["PlannedDateTime"];
                         string str1 = ıtem.Split(new char[] { ' ' })[0];
                         string str2 = ıtem.Split(new char[] { ' ' })[1];
                         int ınt32 = int.Parse(str1.Split(new char[] { '.' })[0]);
@@ -328,7 +295,7 @@ namespace EntegrasyonKuyruk
                     else if (str == "PLANLANDI")
                     {
                         JObject jObject4 = JObject.Parse((string)TicketQueue.BodyText);
-                        string ıtem1 = (string)jObject4.get_Item("PlanlamaTarihi");
+                        string ıtem1 = (string)jObject4["PlanlamaTarihi"];
                         string str3 = ıtem1.Split(new char[] { ' ' })[0];
                         string str4 = ıtem1.Split(new char[] { ' ' })[1];
                         int ınt325 = int.Parse(str3.Split(new char[] { '.' })[0]);
@@ -364,19 +331,19 @@ namespace EntegrasyonKuyruk
                         try
                         {
                             JObject mapping = Program.tools.GetMapping(Program.log, (string)TicketQueue.WSSettings.Name);
-                            dynamic obj2 = Program.tools.jObjectPropVal(Program.log, str5, mapping.get_Item("ResonseCodeProp").ToString());
-                            dynamic obj3 = Program.tools.jObjectPropVal(Program.log, str5, mapping.get_Item("ResonseMessageProp").ToString());
-                            str8 = mapping.get_Item("UpdateObject").get_Item("objeName").ToString();
-                            str9 = mapping.get_Item("UpdateObject").get_Item("objeIdProd").ToString();
-                            str10 = mapping.get_Item("UpdateObject").get_Item("UpdateObjectIDProd").ToString();
-                            foreach (JToken jToken in mapping.get_Item("ResonseCodeIsError"))
+                            dynamic obj2 = Program.tools.jObjectPropVal(Program.log, str5, mapping["ResonseCodeProp"].ToString());
+                            dynamic obj3 = Program.tools.jObjectPropVal(Program.log, str5, mapping["ResonseMessageProp"].ToString());
+                            str8 = mapping["UpdateObject"]["objeName"].ToString();
+                            str9 = mapping["UpdateObject"]["objeIdProd"].ToString();
+                            str10 = mapping["UpdateObject"]["UpdateObjectIDProd"].ToString();
+                            foreach (JToken jToken in mapping["ResonseCodeIsError"])
                             {
-                                if (obj2.ToString() != jToken.get_Item("value").ToString())
+                                if (obj2.ToString() != jToken["value"].ToString())
                                 {
                                     continue;
                                 }
                                 obj1 = jToken;
-                                bool ıtem2 = (bool)jToken.get_Item("IsError");
+                                bool ıtem2 = (bool)jToken["IsError"];
                                 flag2 = ıtem2;
                                 flag3 = ıtem2;
                                 if (((string)obj3).Contains("TAMAMLANDI ->"))
@@ -456,26 +423,5 @@ namespace EntegrasyonKuyruk
             return flag;
         }
 
-        [DllImport("user32.dll", CharSet = CharSet.None, ExactSpelling = false)]
-        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-
-        public class TokenISS
-        {
-            public string Token
-            {
-                get;
-                set;
-            }
-
-            public int? wSSettings
-            {
-                get;
-                set;
-            }
-
-            public TokenISS()
-            {
-            }
-        }
-    }
+      }
 }

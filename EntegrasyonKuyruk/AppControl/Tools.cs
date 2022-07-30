@@ -13,13 +13,9 @@ using System.Text;
 
 namespace EntegrasyonKuyruk.AppControl
 {
-    internal class Tools
+    public class Tools
     {
-        private List<Tools.TokenISS> tokenISS = new List<Tools.TokenISS>();
-
-        public Tools()
-        {
-        }
+        private List<TokenISS> tokenISS = new List<Tools.TokenISS>();
 
         public string AppSettingsPropValue(ILog log, string key)
         {
@@ -77,15 +73,18 @@ namespace EntegrasyonKuyruk.AppControl
             {
                 HttpWebRequest length = (HttpWebRequest)WebRequest.Create(endPointAddress);
                 length.Method = requestTypeText;
+                int ınt32 = 100000;
+                int.TryParse(AppSettingsPropValue(log, "TimeOut"), out ınt32);
+                length.Timeout = ınt32;
                 foreach (JProperty jProperty in jObject1.Properties())
                 {
-                    if (jProperty.get_Name() != "Content-Type")
+                    if (jProperty.Name != "Content-Type")
                     {
-                        length.Headers.Add(jProperty.get_Name(), jProperty.get_Value().ToString());
+                        length.Headers.Add(jProperty.Name, jProperty.Name.ToString());
                     }
                     else
                     {
-                        length.ContentType = jProperty.get_Value().ToString();
+                        length.ContentType = jProperty.Name.ToString();
                     }
                 }
                 if (requestTypeText != "Get" && !string.IsNullOrEmpty(bodyText))
@@ -155,7 +154,7 @@ namespace EntegrasyonKuyruk.AppControl
                     {
                         if (ınt32 != (int)propx.Split(new char[] { '.' }).Length)
                         {
-                            obj1 = typeof(JObject).Parse(obj1.ToString());
+                            obj1 = JObject.Parse(obj1.ToString());
                         }
                     }
                     catch (Exception exception)
@@ -266,9 +265,6 @@ namespace EntegrasyonKuyruk.AppControl
                 set;
             }
 
-            public TokenISS()
-            {
-            }
         }
     }
 }

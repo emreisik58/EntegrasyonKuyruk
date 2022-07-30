@@ -8,13 +8,10 @@ using System.Text;
 
 namespace EntegrasyonKuyruk.AppControl
 {
-    internal class SpidyaQuery
+    public class SpidyaQuery
     {
         public string sId;
 
-        public SpidyaQuery()
-        {
-        }
 
         public string spidyaCreateObject(ILog log, string object_name, JObject obj, string primarykey, Tools tools)
         {
@@ -31,7 +28,7 @@ namespace EntegrasyonKuyruk.AppControl
                 jObject.Add("obj", JsonConvert.SerializeObject(obj));
                 string str1 = this.SpidyaHttpWebRequest(log, "createObject", JsonConvert.SerializeObject(jObject), "Message", tools);
                 log.Debug(string.Concat("spidyaCreateObject msg:", str1));
-                str = JsonConvert.DeserializeObject<JObject>(str1).get_Item(primarykey).ToString();
+                str = JsonConvert.DeserializeObject<JObject>(str1)[primarykey].ToString();
             }
             catch (Exception exception)
             {
@@ -153,13 +150,13 @@ namespace EntegrasyonKuyruk.AppControl
                 return null;
             }
             JObject jObject = JsonConvert.DeserializeObject<JObject>(str);
-            log.Debug(string.Concat("SpidyaHttpWebRequest IsSuccessful:", jObject.get_Item("IsSuccessful").ToString()));
-            if (bool.Parse(jObject.get_Item("IsSuccessful").ToString()))
+            log.Debug(string.Concat("SpidyaHttpWebRequest IsSuccessful:", jObject["IsSuccessful"].ToString()));
+            if (bool.Parse(jObject["IsSuccessful"].ToString()))
             {
-                log.Debug(string.Concat("SpidyaHttpWebRequest response.strResponsex:", jObject.get_Item("Message").ToString()));
-                return jObject.get_Item(Prop).ToString();
+                log.Debug(string.Concat("SpidyaHttpWebRequest response.strResponsex:", jObject["Message"].ToString()));
+                return jObject[Prop].ToString();
             }
-            log.Error(string.Concat("SpidyaHttpWebRequest response.Message:", jObject.get_Item("Message").ToString()));
+            log.Error(string.Concat("SpidyaHttpWebRequest response.Message:", jObject["Message"].ToString()));
             this.sId = null;
             return null;
         }
