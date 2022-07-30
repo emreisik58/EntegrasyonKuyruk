@@ -21,31 +21,17 @@ namespace EntegrasyonKuyruk
 
         private const int SW_SHOW = 5;
 
-        private readonly static ILog log;
+        private readonly static ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        public static List<Program.TokenISS> tokenISS = new List<Program.TokenISS>();
 
-        public static List<Program.TokenISS> tokenISS;
+        public static SpidyaQuery spidyaQuery = new SpidyaQuery();
 
-        public static SpidyaQuery spidyaQuery;
+        public static Tools tools = new Tools();
 
-        public static Tools tools;
+        public static List<int> blockList = new List<int>();
 
-        public static List<int> blockList;
+        public static List<string> BodyList = new List<string>();
 
-        public static List<string> BodyList;
-
-        static Program()
-        {
-            Program.log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-            Program.tokenISS = new List<Program.TokenISS>();
-            Program.spidyaQuery = new SpidyaQuery();
-            Program.tools = new Tools();
-            Program.blockList = new List<int>();
-            Program.BodyList = new List<string>();
-        }
-
-        public Program()
-        {
-        }
 
         [DllImport("kernel32.dll", CharSet = CharSet.None, ExactSpelling = false)]
         private static extern IntPtr GetConsoleWindow();
