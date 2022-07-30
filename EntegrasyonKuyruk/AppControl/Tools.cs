@@ -3,137 +3,185 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Configuration;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace EntegrasyonKuyruk.AppControl
 {
     public class Tools
     {
-        private List<TokenISS> tokenISS = new List<Tools.TokenISS>();
+
+
+
+        public class TokenISS
+        {
+            public string Token
+            {
+                get;
+                set;
+            }
+
+            public int? wSSettings
+            {
+                get;
+                set;
+            }
+        }
+
+
 
         public string AppSettingsPropValue(ILog log, string key)
         {
-            string ıtem = "";
+            string value = "";
             try
             {
-                ıtem = ConfigurationManager.AppSettings[key];
+                value = ConfigurationManager.AppSettings[key];
             }
-            catch (Exception exception1)
+            catch (Exception ex)
             {
-                Exception exception = exception1;
-                log.Error(string.Concat("AppSettingsPropValue key:", key, "  Exception:", exception.Message));
-                ıtem = "";
+                log.Error(string.Concat("AppSettingsPropValue key:", key, "  Exception:", ex.Message));
+                value = "";
             }
-            log.Debug(string.Concat("AppSettingsPropValue key:", key, "  Value:", ıtem));
-            return ıtem;
+            log.Debug(string.Concat("AppSettingsPropValue key:", key, "  Value:", value));
+            return value;
         }
-
         public JObject GetMapping(ILog log, string wSSettingsName)
         {
-            JObject jObject;
+            JObject jObject = new JObject();
             try
             {
                 string str = string.Concat(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "/AppResonseMaps/", wSSettingsName, ".json");
                 log.Info(string.Concat("GetMapping path", str));
                 jObject = JObject.FromObject(JsonConvert.DeserializeObject<JObject>(File.ReadAllText(string.Concat(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "/AppResonseMaps/", wSSettingsName, ".json"))));
             }
-            catch (Exception exception)
+            catch (Exception ex)
             {
-                throw;
+                log.Error(string.Format("AppSettingsPropValue wSSettingsName:{0}  Exception:{1}", wSSettingsName, ex.Message));
             }
             return jObject;
         }
-
         public JObject HttpWebRequestSend(ILog log, int ticketQueueID, string endPointAddress, string bodyText, string headers, string requestTypeText, string RequestName)
         {
-            JObject jObject = new JObject();
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-            log.Debug(string.Concat("**** ", RequestName, " \u00a0- endPointAddress:", endPointAddress));
-            log.Debug(string.Concat("**** ", RequestName, " \u00a0- BodyText:", bodyText));
-            log.Debug(string.Concat("**** ", RequestName, " \u00a0- headers:", headers));
-            log.Debug(string.Concat("**** ", RequestName, " \u00a0- requestTypeText:", requestTypeText));
-            JObject jObject1 = new JObject();
+            JObject jObject = new JObject();
+            JObject headersJObject = JObject.Parse(headers);
+            string strResponse = "";
+            string strStatus = "NOT OK.";
+            bool IsError = false;
             try
             {
-                jObject1 = JObject.Parse(headers);
-            }
-            catch (Exception exception)
-            {
-            }
-            string end = "";
-            string str = "NOT OK.";
-            bool flag = false;
-            try
-            {
-                HttpWebRequest length = (HttpWebRequest)WebRequest.Create(endPointAddress);
-                length.Method = requestTypeText;
-                int ınt32 = 100000;
-                int.TryParse(AppSettingsPropValue(log, "TimeOut"), out ınt32);
-                length.Timeout = ınt32;
-                foreach (JProperty jProperty in jObject1.Properties())
+                int timeOut = 100000;
+                int.TryParse(AppSettingsPropValue(log, "TimeOut"), out timeOut);
+                HttpWebRequest httpWebRequest  = (HttpWebRequest)WebRequest.Create(endPointAddress);
+                httpWebRequest.Method = requestTypeText;
+                httpWebRequest.Timeout = timeOut;
+                foreach (JProperty header in headersJObject.Properties())
                 {
-                    if (jProperty.Name != "Content-Type")
+                    if (header.Name!= "Content-Type")
                     {
-                        length.Headers.Add(jProperty.Name, jProperty.Name.ToString());
+                        httpWebRequest.Headers.Add(header.Name, header.Value.ToString());
                     }
                     else
                     {
-                        length.ContentType = jProperty.Name.ToString();
+                        httpWebRequest.ContentType = header.Value.ToString();
                     }
                 }
                 if (requestTypeText != "Get" && !string.IsNullOrEmpty(bodyText))
                 {
-                    byte[] bytes = Encoding.UTF8.GetBytes(bodyText);
-                    length.ContentLength = (long)((int)bytes.Length);
-                    Stream requestStream = length.GetRequestStream();
-                    requestStream.Write(bytes, 0, (int)bytes.Length);
+                    byte[] bodyTextBytes = Encoding.UTF8.GetBytes(bodyText);
+                    httpWebRequest.ContentLength = (long)((int)bodyTextBytes.Length);
+                    Stream requestStream = httpWebRequest.GetRequestStream();
+                    requestStream.Write(bodyTextBytes, 0, (int)bodyTextBytes.Length);
                     requestStream.Close();
                 }
                 try
                 {
-                    HttpWebResponse response = (HttpWebResponse)length.GetResponse();
+                    HttpWebResponse response = (HttpWebResponse)httpWebRequest.GetResponse();
                     HttpStatusCode statusCode = response.StatusCode;
-                    log.Debug(string.Concat("**** ", RequestName, " \u00a0- response.StatusCode: ", statusCode.ToString()));
-                    str = response.StatusCode.ToString();
+                    //log.Debug(string.Concat("**** ", RequestName, " \u00a0- response.StatusCode: ", statusCode.ToString()));
+                    strStatus = response.StatusCode.ToString();
                     if (response.StatusCode != HttpStatusCode.OK)
                     {
                         using (StreamReader streamReader = new StreamReader(response.GetResponseStream()))
                         {
-                            end = streamReader.ReadToEnd();
+                            strResponse = streamReader.ReadToEnd();
                         }
                     }
                     else
                     {
                         using (StreamReader streamReader1 = new StreamReader(response.GetResponseStream()))
                         {
-                            flag = true;
-                            end = streamReader1.ReadToEnd();
+                            IsError = true;
+                            strResponse = streamReader1.ReadToEnd();
                         }
                     }
                 }
                 catch (WebException webException)
                 {
-                    str = webException.Status.ToString();
-                    log.Info(string.Concat("**** ", RequestName, " \u00a0- \u00a0WebException StatusCode:", str));
-                    end = webException.Message;
-                    log.Info(string.Concat("**** ", RequestName, " \u00a0- WebException strResponse:", end));
+                    strStatus = webException.Status.ToString();
+                    strResponse = webException.Message;
                 }
             }
-            catch (Exception exception2)
+            catch (Exception ex)
             {
-                Exception exception1 = exception2;
-                log.Info(string.Concat("**** ", RequestName, " \u00a0- \u00a0Exception:", exception1.ToString()));
-                end = exception1.Message;
+                strResponse = ex.Message;
             }
-            jObject.Add("strStatus", str);
-            jObject.Add("strResponse", end);
-            jObject.Add("error", new JValue(!flag));
+            jObject.Add("strStatus", strStatus);
+            jObject.Add("strResponse", strResponse);
+            jObject.Add("error", new JValue(!IsError));
+            return jObject;
+        }
+        public JObject webServiceLogObject(ILog log, dynamic TicketQueue, string strResponsex, string statusx)
+        {
+            JObject jObject = new JObject();
+            jObject.Add("object_name", "WSSettingsTicketLog");
+            jObject.Add("IsDeleted", false);
+            jObject.Add("BodyText", TicketQueue.BodyText.ToString());
+            jObject.Add("Headers", TicketQueue.Headers.ToString());
+            jObject.Add("WSSettings", (int)TicketQueue.WSSettings.WSSettingsID);
+            jObject.Add("Ticket", (int)TicketQueue.Ticket.TicketID);
+            jObject.Add("EndPointAddress", (string)TicketQueue.EndPointAddress);
+            jObject.Add("RequestTypeText", (string)TicketQueue.RequestTypeText);
+            jObject.Add("ReponseText", strResponsex);
+            jObject.Add("IsRun", false);
+            jObject.Add("StatusCodeText", statusx);
+            return jObject;
+        }
+        public JObject webServiceTicketObject(int? WSSettingsLogin, int TicketID)
+        {
+            JObject jObject = new JObject();
+            jObject.Add("object_name", "WSSettingsTicket");
+            jObject.Add("IsDeleted", false);
+            jObject.Add("WSSettings", WSSettingsLogin);
+            jObject.Add("Ticket", TicketID);
+            return jObject;
+        }
+
+        public JObject wSSettingsTicketQueueUpdeteObject(ILog log, int ticketQueueID, string lastReponseText, string lastStatusCodeText, int? numberOfAttempts, bool isDeleted, bool isError)
+        {
+            if (numberOfAttempts != null)
+                numberOfAttempts = 0;
+            numberOfAttempts = numberOfAttempts + 1;
+            JObject jObject = new JObject();
+            jObject.Add("object_name", "WSSettingsTicketQueue");
+            jObject.Add("WSSettingsTicketQueueID", ticketQueueID);
+            jObject.Add("IsDeleted", isDeleted);
+            jObject.Add("IsError", isError);
+            if (!string.IsNullOrEmpty(lastReponseText))
+            {
+                jObject.Add("LastReponseText", lastReponseText);
+            }
+            if (!string.IsNullOrEmpty(lastStatusCodeText))
+            {
+                jObject.Add("LastStatusCodeText", lastStatusCodeText);
+            }
+            jObject.Add("NumberOfAttempts", numberOfAttempts);
+            jObject.Add("DuzenlenmeTarihi", DateTime.Now.ToString());
             return jObject;
         }
 
@@ -157,114 +205,19 @@ namespace EntegrasyonKuyruk.AppControl
                             obj1 = JObject.Parse(obj1.ToString());
                         }
                     }
-                    catch (Exception exception)
+                    catch (Exception ex)
                     {
                     }
                 }
                 obj = obj1;
             }
-            catch (Exception exception2)
+            catch (Exception ex)
             {
-                Exception exception1 = exception2;
-                log.Error(string.Concat("****  jObjectPropVal propx:", propx, "-  Exception:", exception1.ToString()));
+                log.Error(string.Concat("****  jObjectPropVal propx:", propx, "-  Exception:", ex.ToString()));
                 obj = null;
             }
             return obj;
         }
 
-        public JObject webServiceLogObject(ILog log, dynamic TicketQueue, string strResponsex, string statusx)
-        {
-            JObject jObject = new JObject();
-            jObject.Add("object_name", "WSSettingsTicketLog");
-            jObject.Add("IsDeleted", false);
-            jObject.Add("BodyText", TicketQueue.BodyText.ToString());
-            jObject.Add("Headers", TicketQueue.Headers.ToString());
-            jObject.Add("WSSettings", (int)TicketQueue.WSSettings.WSSettingsID);
-            jObject.Add("Ticket", (int)TicketQueue.Ticket.TicketID);
-            jObject.Add("EndPointAddress", (string)TicketQueue.EndPointAddress);
-            jObject.Add("RequestTypeText", (string)TicketQueue.RequestTypeText);
-            jObject.Add("ReponseText", strResponsex);
-            jObject.Add("IsRun", false);
-            jObject.Add("StatusCodeText", statusx);
-            return jObject;
-        }
-
-        public JObject webServiceTicketObject(int? WSSettingsLogin, int TicketID)
-        {
-            JObject jObject = new JObject();
-            try
-            {
-                jObject.Add("object_name", "WSSettingsTicket");
-                jObject.Add("IsDeleted", false);
-                jObject.Add("WSSettings", WSSettingsLogin);
-                jObject.Add("Ticket", TicketID);
-            }
-            catch (Exception exception)
-            {
-                throw;
-            }
-            return jObject;
-        }
-
-        public JObject wSSettingsTicketQueueUpdeteObject(ILog log, int ticketQueueID, string lastReponseText, string lastStatusCodeText, int? numberOfAttempts, bool isDeleted, bool isError)
-        {
-            int? nullable;
-            int? nullable1;
-            if (numberOfAttempts.HasValue)
-            {
-                nullable = numberOfAttempts;
-                if (nullable.HasValue)
-                {
-                    nullable1 = new int?(nullable.GetValueOrDefault() + 1);
-                }
-                else
-                {
-                    nullable1 = null;
-                }
-                numberOfAttempts = nullable1;
-            }
-            else
-            {
-                numberOfAttempts = new int?(1);
-            }
-            string[] str = new string[] { "**** ticketQueueID:", ticketQueueID.ToString(), " lastStatusCodeText:", lastStatusCodeText, " numberOfAttempts:", null, null, null };
-            nullable = numberOfAttempts;
-            str[5] = nullable.ToString();
-            str[6] = " lastReponseText:";
-            str[7] = lastReponseText;
-            log.Info(string.Concat(str));
-            JObject jObject = new JObject();
-            jObject.Add("object_name", "WSSettingsTicketQueue");
-            jObject.Add("WSSettingsTicketQueueID", ticketQueueID);
-            jObject.Add("IsDeleted", isDeleted);
-            jObject.Add("IsError", isError);
-            if (!string.IsNullOrEmpty(lastReponseText))
-            {
-                jObject.Add("LastReponseText", lastReponseText);
-            }
-            if (!string.IsNullOrEmpty(lastStatusCodeText))
-            {
-                jObject.Add("LastStatusCodeText", lastStatusCodeText);
-            }
-            jObject.Add("NumberOfAttempts", numberOfAttempts);
-            jObject.Add("DuzenlenmeTarihi", DateTime.Now.ToString());
-            return jObject;
-        }
-
-        public class TokenISS
-        {
-            public string Token
-            {
-                get;
-                set;
-            }
-
-            public int? wSSettings
-            {
-                get;
-                set;
-            }
-
-        }
     }
 }
