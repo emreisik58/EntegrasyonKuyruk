@@ -40,7 +40,7 @@ namespace EntegrasyonKuyruk
         {
             List<dynamic> queueList = GetQueueList();
             var queueListGroupedByTicketID = queueList.GroupBy(u => (int)u.Ticket.TicketID).ToList();
-            Parallel.ForEach(queueListGroupedByTicketID, group =>
+            foreach (var group in queueListGroupedByTicketID)
             {
                 if (!blockList.Contains(group.Key))
                 {
@@ -50,7 +50,8 @@ namespace EntegrasyonKuyruk
                         QueueListProcess(queue);
                     }
                 }
-            });
+
+            }
             if (queueList.Count == 0)
             {
                 log.Info("Main wSSettingsTicketQueue Tablosunda işlenecek kayıt bulunamadı....");
@@ -64,7 +65,7 @@ namespace EntegrasyonKuyruk
         }
         public static List<dynamic> GetQueueList()
         {
-            List<dynamic> queueList = JsonConvert.DeserializeObject<List<dynamic>>(spidyaQuery.SpidyaGetObjectList(log, "WSSettingsTicketQueue", "PK_WSSETTINGSTICKETQUEUEID != 0 and ISDELETED == false", Program.tools));
+            List<dynamic> queueList = JsonConvert.DeserializeObject<List<dynamic>>(spidyaQuery.SpidyaGetObjectList(log, "WSSettingsTicketQueue", "PK_WSSETTINGSTICKETQUEUEID == 19696 and ISDELETED == false", Program.tools));
             return queueList;
         }
 
@@ -154,7 +155,7 @@ namespace EntegrasyonKuyruk
                             if (jProperty.Name == "PlannedDateTime" || jProperty.Name == "PlanlamaTarihi")
                             {
                                 string plannedDateTime = (string)jProperty.Value;
-                                string[] times = plannedDateTime.Replace(" ","_").Replace(":","_").Replace(".","-").Split('-');
+                                string[] times = plannedDateTime.Replace(" ","-").Replace(":","-").Replace(".","-").Split('-');
                                 DateTime dateTime = new DateTime(
                                                                     int.Parse(times[2]),
                                                                     int.Parse(times[1]),
@@ -169,6 +170,7 @@ namespace EntegrasyonKuyruk
                                     dateTime = DateTime.Now.AddMinutes(10);
                                 }
                                 jProperty.Value = dateTime.ToString("dd.MM.yyyy HH:mm");
+                                ticketQueue.BodyText = Newtonsoft.Json.JsonConvert.SerializeObject(bodyJObject);
                                 break;
 
                             }
@@ -196,32 +198,32 @@ namespace EntegrasyonKuyruk
                     bool error = (bool)((dynamic)tools.jObjectPropVal(log, webRequestReponse, "error"));
                     log.Info("TicketQueue HttpWebRequestSend TicketID :" + ticketQueue.Ticket.TicketID + " error :" + error);
                     bool isErorr = false;
-                    dynamic obj1 = new object();
-                    string str8 = "";
-                    string str9 = "";
-                    string str10 = "";
+                    dynamic resonseCodeIsError = new object();
+                    string objeName = "";
+                    string objeIdProd = "";
+                    string updateObjectIDProd = "";
                     if (!error)
                     {
                         try
                         {
                             JObject mapping = tools.GetMapping(log, (string)ticketQueue.WSSettings.Name);
-                            dynamic obj2 = tools.jObjectPropVal(log, webRequestReponse, mapping["ResonseCodeProp"].ToString());
-                            dynamic obj3 = tools.jObjectPropVal(log, webRequestReponse, mapping["ResonseMessageProp"].ToString());
-                            str8 = mapping["UpdateObject"]["objeName"].ToString();
-                            str9 = mapping["UpdateObject"]["objeIdProd"].ToString();
-                            str10 = mapping["UpdateObject"]["UpdateObjectIDProd"].ToString();
-                            foreach (JToken jToken in mapping["ResonseCodeIsError"])
+                            dynamic code = tools.jObjectPropVal(log, webRequestReponse, mapping["ResonseCodeProp"].ToString());
+                            dynamic message = tools.jObjectPropVal(log, webRequestReponse, mapping["ResonseMessageProp"].ToString());
+                            objeName = mapping["UpdateObject"]["objeName"].ToString();
+                            objeIdProd = mapping["UpdateObject"]["objeIdProd"].ToString();
+                            updateObjectIDProd = mapping["UpdateObject"]["UpdateObjectIDProd"].ToString();
+                            foreach (var item in mapping["ResonseCodeIsError"])
                             {
-                                if (obj2.ToString() != jToken["value"].ToString())
+                                if (code.ToString() != item["value"].ToString())
                                 {
                                     continue;
                                 }
-                                obj1 = jToken;
-                                error = (bool)jToken["IsError"];
+                                resonseCodeIsError = item;
+                                error = (bool)item["IsError"];
                                 isErorr = error;
-                                if (((string)obj3).Contains("TAMAMLANDI ->"))
+                                if (((string)message).Contains("TAMAMLANDI ->"))
                                 {
-                                    if (((string)obj3).Contains("TAMAMLANDI -> T_ALINDI"))
+                                    if (((string)message).Contains("TAMAMLANDI -> T_ALINDI"))
                                     {
                                         break;
                                     }
@@ -230,29 +232,29 @@ namespace EntegrasyonKuyruk
                                     Program.log.Info("TicketQueue HttpWebRequestSend TicketID :" + ticketQueue.Ticket.TicketID + " if TAMAMLANDI -> error :" + error);
                                     break;
                                 }
-                                else if (((string)obj3).Contains("PLANLANDI -> TAMAMLANDI"))
+                                else if (((string)message).Contains("PLANLANDI -> TAMAMLANDI"))
                                 {
                                     Program.log.Info("TicketQueue HttpWebRequestSend TicketID :" + ticketQueue.Ticket.TicketID + " if PLANLANDI -> TAMAMLANDI ");
-                                    JObject jObject5 = JObject.Parse((string)ticketQueue.BodyText);
-                                    jObject5.Remove("Statu");
-                                    jObject5.Add("Statu", "BASLADI");
-                                    ticketQueue.BodyText = JsonConvert.SerializeObject(jObject5);
+                                    JObject bodyTextJObject = JObject.Parse((string)ticketQueue.BodyText);
+                                    bodyTextJObject.Remove("Statu");
+                                    bodyTextJObject.Add("Statu", "BASLADI");
+                                    ticketQueue.BodyText = JsonConvert.SerializeObject(bodyTextJObject);
                                     Program.QueueListProcess(ticketQueue);
                                     error = false;
                                     isErorr = false;
                                     break;
                                 }
-                                else if (!((string)obj3).Contains("ALINDI -> BASLADI"))
+                                else if (!((string)message).Contains("ALINDI -> BASLADI"))
                                 {
-                                    if (!((string)obj3).Contains("GONDERILDI -> PLANLANDI"))
+                                    if (!((string)message).Contains("GONDERILDI -> PLANLANDI"))
                                     {
                                         break;
                                     }
                                     log.Info("TicketQueue HttpWebRequestSend TicketID :" + ticketQueue.Ticket.TicketID + " if GONDERILDI -> PLANLANDI ");
-                                    JObject jObject6 = JObject.Parse((string)ticketQueue.BodyText);
-                                    jObject6.Remove("Statu");
-                                    jObject6.Add("Statu", "ALINDI");
-                                    ticketQueue.BodyText = JsonConvert.SerializeObject(jObject6);
+                                    JObject bodyTextJObject = JObject.Parse((string)ticketQueue.BodyText);
+                                    bodyTextJObject.Remove("Statu");
+                                    bodyTextJObject.Add("Statu", "ALINDI");
+                                    ticketQueue.BodyText = JsonConvert.SerializeObject(bodyTextJObject);
                                     QueueListProcess(ticketQueue);
                                     error = false;
                                     isErorr = false;
@@ -261,10 +263,10 @@ namespace EntegrasyonKuyruk
                                 else
                                 {
                                     Program.log.Info("TicketQueue HttpWebRequestSend TicketID :" + ticketQueue.Ticket.TicketID + " if ALINDI -> BASLADI ");
-                                    JObject jObject7 = JObject.Parse((string)ticketQueue.BodyText);
-                                    jObject7.Remove("Statu");
-                                    jObject7.Add("Statu", "PLANLANDI");
-                                    ticketQueue.BodyText = JsonConvert.SerializeObject(jObject7);
+                                    JObject bodyTextJObject = JObject.Parse((string)ticketQueue.BodyText);
+                                    bodyTextJObject.Remove("Statu");
+                                    bodyTextJObject.Add("Statu", "PLANLANDI");
+                                    ticketQueue.BodyText = JsonConvert.SerializeObject(bodyTextJObject);
                                     Program.QueueListProcess(ticketQueue);
                                     error = false;
                                     isErorr = false;
@@ -280,14 +282,14 @@ namespace EntegrasyonKuyruk
                     {
                         blockList.Add((int)ticketQueue.Ticket.TicketID);
                     }
-                    JObject jObject8 = Program.tools.wSSettingsTicketQueueUpdeteObject(Program.log, (int)ticketQueue.WSSettingsTicketQueueID, strResponse, strStatus, (int?)ticketQueue.NumberOfAttempts, !error, isErorr);
-                    Program.spidyaQuery.spidyaUpdateObject(Program.log, "", jObject8, "", Program.tools);
-                    JObject ticketQueue1 = (JObject)Program.tools.webServiceLogObject(Program.log, ticketQueue, strResponse, strStatus);
-                    Program.spidyaQuery.spidyaCreateObject(Program.log, "WSSettingsTicketLog", ticketQueue1, "WSSettingsTicketLogID", Program.tools);
+                    JObject ticketQueueUpdeteObject = Program.tools.wSSettingsTicketQueueUpdeteObject(Program.log, (int)ticketQueue.WSSettingsTicketQueueID, strResponse, strStatus, (int?)ticketQueue.NumberOfAttempts, !error, isErorr);
+                    Program.spidyaQuery.spidyaUpdateObject(Program.log, "", ticketQueueUpdeteObject, "", Program.tools);
+                    JObject serviceLogObject = (JObject)Program.tools.webServiceLogObject(Program.log, ticketQueue, strResponse, strStatus);
+                    Program.spidyaQuery.spidyaCreateObject(Program.log, "WSSettingsTicketLog", serviceLogObject, "WSSettingsTicketLogID", Program.tools);
                     if (!error)
                     {
                         error = true;
-                        Program.getUpdateTicket(ticketQueue1, obj1, str8, str9, str10, strResponse, error);
+                        Program.getUpdateTicket(Newtonsoft.Json.JsonConvert.SerializeObject(ticketQueue), resonseCodeIsError, objeName, objeIdProd, updateObjectIDProd, strResponse, error);
                     }
                 }
             }
@@ -314,7 +316,7 @@ namespace EntegrasyonKuyruk
             {
                 JObject ticketObject = tools.webServiceTicketObject(wSSettingsLogin, ticketId);
                 string createObjectID = Program.spidyaQuery.spidyaCreateObject(log, "WSSettingsTicket", ticketObject, "WSSettingsTicketID", tools);
-                if (createObjectID == null)
+                if (createObjectID != null)
                 {
                     try
                     {

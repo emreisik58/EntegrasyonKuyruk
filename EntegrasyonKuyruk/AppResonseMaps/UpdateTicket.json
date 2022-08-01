@@ -1,0 +1,239 @@
+{
+  "UpdateObject": {
+    "objeName": "Ticket",
+    "objeIdProd": "TicketID",
+    "UpdateObjectIDProd": "Ticket.TicketID"
+  },
+  "ResonseCodeProp": "strResponse.Code",
+  "ResonseMessageProp": "strResponse.Message",
+  "ResonseCodeIsError": [
+    {
+      "value": "0",
+      "IsError": true,
+      "UpdateProps": [
+	  {
+          "pltField": "SynchronizationError",
+          "serviceField": "strResponse.Message",
+          "valueType": "string",
+          "FieldType": "element"
+        },
+        {
+          "pltField": "IsSynchronizationError",
+          "serviceField": true,
+          "valueType": "boolean",
+          "FieldType": "static"
+        }
+
+      ]
+    },
+    {
+      "value": "1",
+      "IsError": false,
+      "UpdateProps": [
+	  {
+          "pltField": "SynchronizationError",
+          "serviceField": "strResponse.Message",
+          "valueType": "string",
+          "FieldType": "element"
+        },
+        {
+          "pltField": "IsSynchronizationError",
+          "serviceField": false,
+          "valueType": "boolean",
+          "FieldType": "static"
+        },
+        {
+          "pltField": "CustomerDescription",
+          "serviceField": "11",
+          "valueType": "string",
+          "FieldType": "static"
+        },
+        {
+          "pltField": "IsSynchronized",
+          "serviceField": false,
+          "valueType": "boolean",
+          "FieldType": "static"
+        }
+
+      ]
+    },
+    {
+      "value": "2",
+      "IsError": true,
+      "UpdateProps": [
+	  {
+          "pltField": "SynchronizationError",
+          "serviceField": "strResponse.Message",
+          "valueType": "string",
+          "FieldType": "element"
+        },
+        {
+          "pltField": "IsSynchronizationError",
+          "serviceField": true,
+          "valueType": "boolean",
+          "FieldType": "static"
+        }
+
+      ]
+    },
+    {
+      "value": "3",
+      "IsError": true,
+      "UpdateProps": [
+	  {
+          "pltField": "SynchronizationError",
+          "serviceField": "strResponse.Message",
+          "valueType": "string",
+          "FieldType": "element"
+        },
+        {
+          "pltField": "IsSynchronizationError",
+          "serviceField": true,
+          "valueType": "boolean",
+          "FieldType": "static"
+        }
+
+      ]
+    },
+    {
+      "value": "4",
+      "IsError": true,
+      "UpdateProps": [
+		{
+          "pltField": "SynchronizationError",
+          "serviceField": "strResponse.Message",
+          "valueType": "string",
+          "FieldType": "element"
+        },
+        {
+          "pltField": "IsSynchronizationError",
+          "serviceField": true,
+          "valueType": "boolean",
+          "FieldType": "static"
+        }
+
+      ]
+    },
+    {
+      "value": "5",
+      "IsError": true,
+      "UpdateProps": [
+		{
+          "pltField": "SynchronizationError",
+          "serviceField": "strResponse.Message",
+          "valueType": "string",
+          "FieldType": "element"
+        },
+        {
+          "pltField": "IsSynchronizationError",
+          "serviceField": true,
+          "valueType": "boolean",
+          "FieldType": "static"
+        }
+
+      ]
+    },
+    {
+      "value": "6",
+      "IsError": true,
+      "UpdateProps": [
+		{
+          "pltField": "SynchronizationError",
+          "serviceField": "strResponse.Message",
+          "valueType": "string",
+          "FieldType": "element"
+        },
+        {
+          "pltField": "IsSynchronizationError",
+          "serviceField": true,
+          "valueType": "boolean",
+          "FieldType": "static"
+        }
+
+      ]
+    },
+    {
+      "value": "7",
+      "IsError": true,
+      "UpdateProps": [
+		{
+          "pltField": "SynchronizationError",
+          "serviceField": "strResponse.Message",
+          "valueType": "string",
+          "FieldType": "element"
+        },
+        {
+          "pltField": "IsSynchronizationError",
+          "serviceField": true,
+          "valueType": "boolean",
+          "FieldType": "static"
+        }
+
+      ]
+    },
+    {
+      "value": "8",
+      "IsError": true,
+      "UpdateProps": [
+		{
+          "pltField": "SynchronizationError",
+          "serviceField": "strResponse.Message",
+          "valueType": "string",
+          "FieldType": "element"
+        },
+        {
+          "pltField": "IsSynchronizationError",
+          "serviceField": true,
+          "valueType": "boolean",
+          "FieldType": "static"
+        }
+
+      ]
+    },
+    {
+      "value": "9",
+      "IsError": true,
+      "UpdateProps": [
+		{
+          "pltField": "SynchronizationError",
+          "serviceField": "strResponse.Message",
+          "valueType": "string",
+          "FieldType": "element"
+        },
+        {
+          "pltField": "IsSynchronizationError",
+          "serviceField": true,
+          "valueType": "boolean",
+          "FieldType": "static"
+        }
+
+      ]
+    },
+    {
+      "value": "10",
+      "IsError": false,
+      "UpdateProps": [
+		{
+          "pltField": "SynchronizationError",
+          "serviceField": "Başarılı",
+          "valueType": "string",
+          "FieldType": "static"
+        },
+        {
+          "pltField": "IsSynchronizationError",
+          "serviceField": false,
+          "valueType": "boolean",
+          "FieldType": "static"
+        },
+        {
+          "pltField": "IsSynchronized",
+          "serviceField": false,
+          "valueType": "boolean",
+          "FieldType": "static"
+        }
+
+      ]
+    }
+  ],
+  "ResonseCodeMessageProp": ""
+}
